@@ -27,8 +27,11 @@ class Address:
         ]
     }
     MAINNET_PREFIX = 'bitcoincash'
+    MAINNET_SLP_PREFIX = 'simpleledger'
     TESTNET_PREFIX = 'bchtest'
+    TESTNET_SLP_PREFIX = 'slptest'
     REGTEST_PREFIX = 'bchreg'
+    REGTEST_SLP_PREFIX = 'slpreg'
 
     def __init__(self, version, payload, prefix=None):
         self.version = version
@@ -53,6 +56,21 @@ class Address:
     def cash_address(self, regtest=False):
         if regtest:
             self.prefix = Address.REGTEST_PREFIX 
+        version_int = Address._address_type('cash', self.version)[1]
+        payload = [version_int] + self.payload
+        payload = convertbits(payload, 8, 5)
+        checksum = calculate_checksum(self.prefix, payload)
+        return self.prefix + ':' + b32encode(payload + checksum)
+
+    def slp_cash_address(self, regtest=False):
+        if regtest:
+            self.prefix = Address.REGTEST_SLP_PREFIX
+        elif self.prefix == Address.REGTEST_PREFIX:
+            self.prefix = Address.REGTEST_SLP_PREFIX
+        elif self.prefix == Address.MAINNET_PREFIX:
+            self.prefix = Address.MAINNET_SLP_PREFIX
+        elif self.prefix == Address.TESTNET_PREFIX:
+            self.prefix = Address.TESTNET_SLP_PREFIX
         version_int = Address._address_type('cash', self.version)[1]
         payload = [version_int] + self.payload
         payload = convertbits(payload, 8, 5)
@@ -128,6 +146,8 @@ class Address:
 def to_cash_address(address, regtest=False):
     return Address.from_string(address).cash_address(regtest)
 
+def to_slp_address(address):
+    return Address.from_string(address).slp_cash_address()
 
 def to_legacy_address(address):
     return Address.from_string(address).legacy_address()
